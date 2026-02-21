@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AppBuildersIHS2026</title>
+</head>
+<body>
+
+<h1>AppBuildersIHS2026</h1>
+
+<div id="auth">
+    <input id="email" type="email" placeholder="Email"><br>
+    <input id="password" type="password" placeholder="Password"><br>
+    <button onclick="register()">Register</button>
+    <button onclick="login()">Login</button>
+</div>
+
+<div id="dashboard" style="display:none;">
+    <h2>Welcome <span id="userEmail"></span></h2>
+    <button onclick="logout()">Logout</button>
+
+    <h3>Request Project</h3>
+    <input id="project" placeholder="Project"><br>
+    <textarea id="details" placeholder="Details"></textarea><br>
+    <button onclick="submitRequest()">Submit</button>
+
+    <h3>Your Requests</h3>
+    <div id="requests"></div>
+</div>
+
+<!-- Firebase CDN (ONLY THESE) -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+
+<script>
+// Firebase config
+const firebaseConfig = {
+  apiKey: "AIzaSyA5fXQIq0-GPDuRPDDzdJAgnKFvogXB0fo",
+  authDomain: "appbuildersihs2026-b8914.firebaseapp.com",
+  projectId: "appbuildersihs2026-b8914",
+  storageBucket: "appbuildersihs2026-b8914.firebasestorage.app",
+  messagingSenderId: "761905598003",
+  appId: "1:761905598003:web:7df37d557836caaa845d46",
+  measurementId: "G-MZJP6B7XD5"
+};
+
+// Initialize Firebase (OLD MODULAR STYLE NOT NEEDED)
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Register
+function register() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    firebase.auth().createUserWithEmailAndPassword(email, password)
+    .then(user => {
+        showDashboard(user.user);
+    })
+    .catch(error => alert(error.message));
+}
+
+// Login
+function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    firebase.auth().signInWithEmailAndPassword(email, password)
+    .then(user => {
+        showDashboard(user.user);
+    })
+    .catch(error => alert(error.message));
+}
+
+// Dashboard
+function showDashboard(user) {
+    document.getElementById('auth').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    document.getElementById('userEmail').innerText = user.email;
+    loadRequests();
+}
+
+// Submit request
+function submitRequest() {
+    const project = document.getElementById('project').value;
+    const details = document.getElementById('details').value;
+
+    db.collection('requests').add({
+        email: firebase.auth().currentUser.email,
+        project: project,
+        details: details,
+        status: "Pending",
+        timestamp: new Date()
+    }).then(() => {
+        alert("Request submitted");
+        loadRequests();
+    });
+}
+
+// Load requests
+function loadRequests() {
+    const requestsDiv = document.getElementById('requests');
+    requestsDiv.innerHTML = "";
+
+    db.collection('requests')
+    .where("email", "==", firebase.auth().currentUser.email)
+    .get()
+    .then(snapshot => {
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            requestsDiv.innerHTML += `
+                <p>
+                    <strong>${data.project}</strong><br>
+                    ${data.details}<br>
+                    Status: ${data.status}
+                </p>
+            `;
+        });
+    });
+}
+
+// Logout
+function logout() {
+    firebase.auth().signOut().then(() => {
+        document.getElementById('auth').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'none';
+    });
+}
+
+// Auto login check
+firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+        showDashboard(user);
+    }
+});
+</script>
+
+</body>
+</html>
